@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FlatMate — Find your kind of roommate</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#" onclick="showScreen('auth'); return false;"><span class="brand-mark">f</span> flatmate<span class="brand-dot">.</span></a>
+      <div class="top-actions" id="topActions" hidden>
+        <span class="welcome" id="welcomeText"></span>
+        <div class="account-avatar" id="accountAvatar" aria-label="Your profile photo">AM</div>
+        <button class="btn btn-ghost btn-small" id="logoutBtn">Log out</button>
+      </div>
+    </header>
+
+    <main>
+      <!-- AUTH -->
+      <section id="authScreen" class="screen auth-layout">
+        <div class="auth-copy">
+          <div class="eyebrow"><span class="eyebrow-dot"></span> BETTER SHARED LIVING STARTS HERE</div>
+          <h1>Find a flatmate.<br><em>Find your rhythm.</em></h1>
+          <p class="lead">A good home is more than four walls. Meet people whose everyday habits fit yours.</p>
+          <div class="mini-proof">
+            <div class="avatar-stack"><span>AM</span><span>IS</span><span>KP</span></div>
+            <span>Match on habits, not guesswork.</span>
+          </div>
+          <div class="auth-art">
+            <div class="sun-shape"></div>
+            <div class="art-card art-card-one"><span class="art-icon">☾</span><strong>Quiet nights</strong><small>Sleep schedules aligned</small></div>
+            <div class="art-card art-card-two"><span class="art-icon">✳</span><strong>Shared values</strong><small>Comfortable living, together</small></div>
+            <div class="art-plant">✿</div>
+          </div>
+        </div>
+        <div class="auth-panel">
+          <div class="auth-tabs">
+            <button class="tab active" data-auth="login">Log in</button>
+            <button class="tab" data-auth="register">Create account</button>
+          </div>
+          <form id="authForm">
+            <div id="registerNameWrap" class="field" hidden>
+              <label for="authName">Your name</label>
+              <input id="authName" type="text" placeholder="e.g. Aditi Sharma" autocomplete="name" />
+            </div>
+            <div class="field">
+              <label for="authEmail">Email address</label>
+              <input id="authEmail" type="email" placeholder="you@example.com" required autocomplete="email" />
+            </div>
+            <div class="field">
+              <label for="authPassword">Password</label>
+              <input id="authPassword" type="password" placeholder="At least 6 characters" required minlength="6" autocomplete="current-password" />
+            </div>
+            <p class="form-error" id="authError" role="alert"></p>
+            <button class="btn btn-primary btn-full" id="authSubmit" type="submit">Log in <span>→</span></button>
+          </form>
+          <div class="demo-box">
+            <div class="demo-title">Try the demo</div>
+            <p>Explore with a sample profile. All demo accounts use <b>demo123</b>.</p>
+            <button type="button" class="demo-login" data-email="aarav@example.com">Continue as Aarav <span>↗</span></button>
+            <button type="button" class="demo-login" data-email="ishita@example.com">Continue as Ishita <span>↗</span></button>
+          </div>
+          <p class="fine-print">By continuing, you agree to use FlatMate respectfully and honestly.</p>
+        </div>
+      </section>
+
+      <!-- QUESTIONNAIRE -->
+      <section id="questionnaireScreen" class="screen" hidden>
+        <div class="page-heading">
+          <div class="eyebrow">YOUR LIFESTYLE, YOUR MATCH</div>
+          <h1>Let’s find your <em>living match.</em></h1>
+          <p>Tell us what makes a shared space feel like home. Your answers help us find compatible people.</p>
+        </div>
+        <div class="progress-wrap"><div class="progress-label"><span>YOUR PROFILE</span><span id="progressText">Step 1 of 3</span></div><div class="progress-track"><div id="progressBar"></div></div></div>
+        <form id="questionnaireForm" class="questionnaire-card" novalidate>
+          <div class="step-panel" data-step="1">
+            <div class="step-title"><span class="step-number">01</span><div><h2>The basics</h2><p>Where and with what budget are you looking?</p></div></div>
+            <div class="form-grid">
+              <div class="field"><label for="city">Preferred city</label><select id="city" name="city" required><option value="">Select your city</option><option value="Nashik">Nashik</option><option value="Pune">Pune</option><option value="Mumbai">Mumbai</option></select></div>
+              <div class="field"><label for="budget">Monthly budget (₹)</label><input id="budget" name="budget" type="number" min="1" step="500" placeholder="12000" required /></div>
+            </div>
+            <div class="field"><label for="bio">A little about you</label><textarea id="bio" rows="3" maxlength="240" placeholder="Your course/work, interests, and what you value in a home..."></textarea></div>
+            <div class="field photo-upload-field">
+              <label for="profilePhotoInput">Profile photo</label>
+              <div class="photo-upload-row">
+                <div class="photo-preview" id="profilePhotoPreview">Your photo</div>
+                <div class="photo-upload-controls">
+                  <input id="profilePhotoInput" type="file" accept="image/png,image/jpeg,image/webp" />
+                  <small>Upload a JPG, PNG or WebP image (maximum 3 MB). It will appear beside your account name.</small>
+                  <button type="button" class="btn btn-ghost btn-small" id="removeProfilePhoto" hidden>Remove photo</button>
+                </div>
+              </div>
+            </div>
+            <div class="field"><label>Room preference</label><div class="choice-grid">
+              <label class="choice"><input type="radio" name="roomSharing" value="Private room preferred" checked><span>Private room</span></label>
+              <label class="choice"><input type="radio" name="roomSharing" value="Shared room okay"><span>Shared room okay</span></label>
+              <label class="choice"><input type="radio" name="roomSharing" value="No preference"><span>No preference</span></label>
+            </div></div>
+          </div>
+
+          <div class="step-panel" data-step="2" hidden>
+            <div class="step-title"><span class="step-number">02</span><div><h2>Your daily rhythm</h2><p>Small routines can make a big difference.</p></div></div>
+            <div class="form-grid">
+              <div class="field"><label for="sleepTime">When do you usually sleep?</label><input id="sleepTime" type="time" value="23:00" required /></div>
+              <div class="field"><label for="wakeTime">When do you usually wake up?</label><input id="wakeTime" type="time" value="07:00" required /></div>
+              <div class="field"><label for="cleanliness">How tidy do you like your space?</label><select id="cleanliness"><option>Very clean</option><option>Moderately clean</option><option>Average</option><option>Relaxed</option></select></div>
+              <div class="field"><label for="studyWork">When do you study or work?</label><select id="studyWork"><option>Mostly mornings</option><option>Mostly afternoons</option><option>Mostly evenings</option><option>Late nights</option><option>Regular daytime</option><option>Varies</option></select></div>
+            </div>
+            <div class="field"><label>What kind of home atmosphere do you prefer?</label><div class="choice-grid">
+              <label class="choice"><input type="radio" name="socialLifestyle" value="Quiet" checked><span>Quiet & peaceful</span></label>
+              <label class="choice"><input type="radio" name="socialLifestyle" value="Occasionally social"><span>Social sometimes</span></label>
+              <label class="choice"><input type="radio" name="socialLifestyle" value="Frequent parties"><span>Party friendly</span></label>
+            </div></div>
+          </div>
+
+          <div class="step-panel" data-step="3" hidden>
+            <div class="step-title"><span class="step-number">03</span><div><h2>Living preferences</h2><p>Let’s cover the details that matter to you.</p></div></div>
+            <div class="form-grid">
+              <div class="field"><label for="smoking">Smoking preference</label><select id="smoking"><option>No</option><option>Occasionally</option><option>Yes</option><option>Doesn't matter</option></select></div>
+              <div class="field"><label for="foodPreference">Food preference</label><select id="foodPreference"><option>Vegetarian</option><option>Non-vegetarian</option><option>Vegan</option><option>No preference</option></select></div>
+              <div class="field"><label for="guests">How often are guests over?</label><select id="guests"><option>Rarely</option><option>Occasionally</option><option>Frequently</option></select></div>
+            </div>
+            <div class="field"><label>Choose keywords that describe you</label><p class="field-hint">Select all that apply.</p><div class="keyword-grid" id="keywordGrid">
+              <label class="keyword"><input type="checkbox" value="Early sleeper"><span>☾ Early sleeper</span></label>
+              <label class="keyword"><input type="checkbox" value="Night owl"><span>☼ Night owl</span></label>
+              <label class="keyword"><input type="checkbox" value="Study focused"><span>▤ Study focused</span></label>
+              <label class="keyword"><input type="checkbox" value="Clean"><span>✧ Clean</span></label>
+              <label class="keyword"><input type="checkbox" value="No parties"><span>⌁ No parties</span></label>
+              <label class="keyword"><input type="checkbox" value="Social"><span>♡ Social</span></label>
+              <label class="keyword"><input type="checkbox" value="Music lover"><span>♫ Music lover</span></label>
+              <label class="keyword"><input type="checkbox" value="Fitness"><span>↗ Fitness</span></label>
+              <label class="keyword"><input type="checkbox" value="Pet friendly"><span>♧ Pet friendly</span></label>
+            </div></div>
+            <div class="note-box"><span>✦</span><p><b>Good to know:</b> Your compatibility score is based on shared habits and preferences. You can update your answers any time.</p></div>
+          </div>
+
+          <div class="questionnaire-actions">
+            <button type="button" class="btn btn-ghost" id="backStep" hidden>← Back</button>
+            <span class="step-spacer"></span>
+            <button type="button" class="btn btn-primary" id="nextStep">Continue <span>→</span></button>
+            <button type="submit" class="btn btn-primary" id="saveProfile" hidden>Find my flatmates <span>→</span></button>
+          </div>
+          <p class="form-error" id="questionnaireError" role="alert"></p>
+        </form>
+      </section>
+
+      <!-- DISCOVER -->
+      <section id="discoverScreen" class="screen" hidden>
+        <div class="discover-heading">
+          <div><div class="eyebrow">YOUR PEOPLE ARE OUT THERE</div><h1>Meet your <em>potential flatmates.</em></h1><p id="discoverSubtitle">All demo profiles ranked by lifestyle compatibility.</p></div>
+          <button class="btn btn-outline" id="editProfileBtn">✎ Edit preferences</button>
+        </div>
+        <div class="discover-toolbar"><div class="result-count" id="resultCount">Finding your matches...</div><div class="sort-label">SORTED BY <b>BEST MATCH</b> ↓</div></div>
+        <div id="matchGrid" class="match-grid"></div>
+        <div id="emptyState" class="empty-state" hidden><div class="empty-icon">⌂</div><h2>No flatmates found yet</h2><p>There are no other profiles in your selected city. Try another city or invite friends to join FlatMate.</p><button class="btn btn-primary" id="emptyEditBtn">Update my preferences</button></div>
+      </section>
+
+      <!-- MATCHES -->
+      <section id="matchesScreen" class="screen" hidden>
+        <div class="page-heading"><div class="eyebrow">GOOD THINGS ARE MUTUAL</div><h1>Your <em>connections.</em></h1><p>People who liked you back. Your next great shared home could start here.</p></div>
+        <div id="mutualGrid" class="match-grid"></div>
+        <div id="mutualEmpty" class="empty-state"><div class="empty-icon">♡</div><h2>No saved profiles yet</h2><p>Profiles you like will be saved here so you can revisit them.</p><button class="btn btn-primary" id="backDiscoverBtn">Discover flatmates</button></div>
+      </section>
+    </main>
+    <nav class="bottom-nav" id="bottomNav" hidden>
+      <button class="nav-item active" data-screen="discover"><span>⌕</span> Discover</button>
+      <button class="nav-item" data-screen="matches"><span>♡</span> Matches</button>
+      <button class="nav-item" data-screen="questionnaire"><span>☷</span> My profile</button>
+    </nav>
+
+    <div id="profileModal" class="profile-modal" hidden>
+      <div class="modal-backdrop" data-close-modal></div>
+      <section class="profile-dialog" role="dialog" aria-modal="true" aria-labelledby="detailName">
+        <button class="modal-close" id="closeProfileModal" aria-label="Close">×</button>
+        <div class="modal-cover"><div class="profile-avatar large" id="detailAvatar">AM</div><div><span class="modal-kicker">FLATMATE PROFILE</span><h2 id="detailName">Name</h2><p id="detailLocation"></p></div><div class="modal-score" id="detailScore">--%</div></div>
+        <p class="detail-bio" id="detailBio"></p>
+        <div class="detail-grid" id="detailGrid"></div>
+        <div class="detail-keywords" id="detailKeywords"></div>
+        <div class="modal-actions"><button class="btn btn-ghost" id="detailCloseBtn">Close</button><button class="btn btn-primary" id="detailLikeBtn">♡ Like this flatmate</button></div>
+      </section>
+    </div>
+    <div id="toast" class="toast" role="status"></div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/supabase-config.js"></script>
+  <script src="/matching.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+[build]
+  command = "bash scripts/build-wasm.sh"
+  publish = "."
+
+[[headers]]
+  for = "/*.wasm"
+  [headers.values]
+    Content-Type = "application/wasm"
