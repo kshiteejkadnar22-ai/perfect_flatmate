@@ -10,6 +10,7 @@
 #include <vector>
 #include "httplib.h"
 #include "nlohmann/json.hpp"
+#include <cstdlib>
 
 using json = nlohmann::json;
 using namespace std;
@@ -332,9 +333,15 @@ int main() {
             try {json a=json::array();for(const auto& u:repo.mutualMatches(stoi(q.matches[1])))a.push_back(u.publicJson());send(r,{{"matches",a}});}
             catch(const exception& e){send(r,{{"error",e.what()}},400);}
         });
-        cout<<"FlatMate is running at http://localhost:8080\n";
-        cout<<"Offline mode: 100 demo profiles loaded. Demo login: aarav@example.com / demo123\n";
-        if(!server.listen("127.0.0.1",8080)){cerr<<"Could not start server on port 8080. Check whether it is already in use.\n";return 1;}
-    } catch(const exception& e) {cerr<<"Startup error: "<<e.what()<<"\n";return 1;}
+        const char* portEnv = std::getenv("PORT");
+int port = portEnv ? std::stoi(portEnv) : 8080;
+
+cout << "FlatMate server running on port "
+     << port << endl;
+
+if (!server.listen("0.0.0.0", port)) {
+    cerr << "Could not start FlatMate server." << endl;
+    return 1;
+}
     return 0;
 }
