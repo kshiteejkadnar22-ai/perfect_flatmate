@@ -1,0 +1,85 @@
+[
+  {
+    "bio": "Computer science student looking for a calm, respectful flatmate.",
+    "email": "aarav@example.com",
+    "hasProfile": true,
+    "id": 1,
+    "liked": [],
+    "name": "Aarav Mehta",
+    "password": "demo123",
+    "preferences": {
+      "budget": 12000,
+      "city": "Pune",
+      "cleanliness": "Very clean",
+      "foodPreference": "Vegetarian",
+      "guests": "Occasionally",
+      "keywords": [
+        "Early sleeper",
+        "Study focused",
+        "Clean",
+        "No parties"
+      ],
+      "roomSharing": "Private room preferred",
+      "sleepTime": "23:00",
+      "smoking": "No",
+      "socialLifestyle": "Quiet",
+      "studyWork": "Mostly evenings",
+      "wakeTime": "07:00"
+    }
+  },
+  {
+    "bio": "Design student who enjoys a tidy and friendly home.",
+    "email": "ishita@example.com",
+    "hasProfile": true,
+    "id": 2,
+    "liked": [],
+    "name": "Ishita Shah",
+    "password": "demo123",
+    "preferences": {
+      "budget": 15000,
+      "city": "Pune",
+      "cleanliness": "Moderately clean",
+      "foodPreference": "Vegetarian",
+      "guests": "Occasionally",
+      "keywords": [
+        "Clean",
+        "Social",
+        "Study focused"
+      ],
+      "roomSharing": "Private room preferred",
+      "sleepTime": "22:30",
+      "smoking": "No",
+      "socialLifestyle": "Occasionally social",
+      "studyWork": "Mostly evenings",
+      "wakeTime": "06:30"
+    }
+  },
+  {
+    "bio": "",
+    "email": "abc@gmail.com",
+    "hasProfile": true,
+    "id": 3,
+    "liked": [],
+    "name": "VK",
+    "password": "qwerty",
+    "preferences": {
+      "budget": 12000,
+      "city": "Pune",
+      "cleanliness": "Very clean",
+      "foodPreference": "Non-vegetarian",
+      "guests": "Occasionally",
+      "keywords": [
+        "Early sleeper",
+        "Clean",
+        "Music lover",
+        "Fitness"
+      ],
+      "roomSharing": "Shared room okay",
+      "sleepTime": "23:00",
+      "smoking": "No",
+      "socialLifestyle": "Quiet",
+      "studyWork": "Mostly evenings",
+      "wakeTime": "07:00"
+    }
+  }
+]
