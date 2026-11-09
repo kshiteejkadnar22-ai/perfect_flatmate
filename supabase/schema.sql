@@ -18,7 +18,15 @@ create table if not exists public.likes (
 alter table public.profiles enable row level security;
 alter table public.likes enable row level security;
 
--- Authenticated FlatMate users can discover public profile fields.
+-- A completed profile is visible to signed-in FlatMate users; incomplete profiles remain private.
+-- Drop named policies first so this setup script can safely be run again.
+drop policy if exists "Authenticated users can read completed profiles" on public.profiles;
+drop policy if exists "Users can create their own profile" on public.profiles;
+drop policy if exists "Users can update their own profile" on public.profiles;
+drop policy if exists "Users can read their own likes" on public.likes;
+drop policy if exists "Users can add their own likes" on public.likes;
+drop policy if exists "Users can remove their own likes" on public.likes;
+
 create policy "Authenticated users can read completed profiles"
 on public.profiles for select to authenticated
 using (has_profile = true or id = auth.uid());
