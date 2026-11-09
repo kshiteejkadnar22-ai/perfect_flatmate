@@ -15,7 +15,7 @@
 3. Run the complete `supabase/schema.sql`.
 4. Open Project Settings → API.
 5. Copy the Project URL and the `anon` / publishable public key.
-6. Open Authentication → Providers → Email. For this simple email/password flow, turn off email confirmation. If you keep confirmation enabled, the user must confirm their email before the app can create their profile row and enter the app.
+6. Open Authentication → Providers → Email. You may keep email confirmation enabled: the app now shows a confirmation message and lets the user log in after confirming. If confirmation is disabled, registration signs the user in immediately.
 
 ## 2. Configure the browser client
 
@@ -44,6 +44,9 @@ Use only the anon/publishable key. Never expose a `service_role` key in frontend
 - Likes/saved profiles: Supabase `likes`.
 - Demo profiles: shared read-only `demo_profiles.json` (100 records).
 - Profile photos: remain browser-local in this version, as in the original project. They are not synchronized between devices.
+- Profile visibility: a profile is private to its owner until the questionnaire is saved. Saving sets `has_profile = true`; completed profiles then become discoverable by other authenticated FlatMate users under the `profiles` table RLS policy. Email addresses are not included in public profile objects.
+- Questionnaire: city, budget, routine, lifestyle and living-preference answers are saved to the owner's `profiles.preferences` JSONB field. Editing and saving the questionnaire updates the same profile and keeps it discoverable.
+- Login and registration do not require the C++ WebAssembly module or demo dataset to load. Those assets are initialized only when Discover is opened, so a matching-engine build problem cannot disable the authentication form.
 
 ## 5. Important notes
 
