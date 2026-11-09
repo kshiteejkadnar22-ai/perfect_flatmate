@@ -15,7 +15,7 @@
 3. Run the complete `supabase/schema.sql`.
 4. Open Project Settings → API.
 5. Copy the Project URL and the `anon` / publishable public key.
-6. Open Authentication → Providers → Email. You may keep email confirmation enabled: the app now shows a confirmation message and lets the user log in after confirming. If confirmation is disabled, registration signs the user in immediately.
+6. Open Authentication → Sign In / Providers → Email. Turn **Confirm email OFF** and save. FlatMate is intended to create the account and sign the user in immediately without an email verification step. Supabase returns a session during registration only when this setting is disabled. If registration returns no session, the app displays a configuration error instead of asking the user to check email.
 
 ## 2. Configure the browser client
 
@@ -35,7 +35,7 @@ Use only the anon/publishable key. Never expose a `service_role` key in frontend
 3. Select the repository.
 4. Netlify reads `netlify.toml`; build command is `bash scripts/build-wasm.sh` and publish directory is `.`.
 5. Deploy. The build script downloads Emscripten and compiles `matching_core.cpp` into `matching.js` and `matching.wasm`.
-6. Open the deployed site and register a new account.
+6. Open the deployed site and register a new account. With Confirm email disabled, registration should sign the user in immediately and take them to the questionnaire. For accounts created earlier while confirmation was enabled, confirm the existing user manually in Authentication → Users, or delete that test account and register again after disabling Confirm email.
 
 ## 4. What is shared and persistent
 
