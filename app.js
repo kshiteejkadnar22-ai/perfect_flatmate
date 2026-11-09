@@ -104,7 +104,11 @@ async function api(path, options = {}) {
     });
     if (error) throw error;
     if (!data.session) {
-      return { requiresEmailConfirmation: true, email: body.email.trim().toLowerCase() };
+      // FlatMate is configured for immediate email/password access. Supabase
+      // returns no session when the project's Confirm Email setting is enabled.
+      // Do not display a misleading "check your email" flow: tell the owner
+      // which project setting must be changed instead.
+      throw new Error("Email confirmation is still enabled in Supabase. In your Supabase dashboard, open Authentication → Sign In / Providers → Email, turn off Confirm email, and save. Then confirm or recreate any account that was registered before this setting was changed.");
     }
     const user = data.user;
     const { data: profile, error: profileError } = await supabaseClient.from("profiles").upsert({
@@ -294,10 +298,6 @@ $("authForm").addEventListener("submit", async (event) => {
       ? await api("/register", { method: "POST", body: JSON.stringify(payload) })
       : await api("/login", { method: "POST", body: JSON.stringify(payload) });
 
-    if (data.requiresEmailConfirmation) {
-      errorBox.textContent = `Account created. Check ${data.email} for the confirmation link. After confirming, return here and log in.`;
-      return;
-    }
     toast(authMode === "register" ? "Account created. Let's set up your profile." : "Welcome back!");
     await enterApp(data.user);
   } catch (error) {
