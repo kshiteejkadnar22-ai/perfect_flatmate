@@ -2,26 +2,84 @@
 // Configure these two values in supabase-config.js before deploying.
 const SUPABASE_URL = window.FLATMATE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = window.FLATMATE_SUPABASE_ANON_KEY;
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Create the Supabase client only after validating its configuration. An invalid
+// placeholder URL must never stop the login/register UI from attaching handlers.
+let supabaseClient = null;
+let supabaseReady = false;
+let matchingReady = false;
+
+async function initialiseSupabase() {
+  if (supabaseReady && supabaseClient) return supabaseClient;
+  if (!window.supabase?.createClient) {
+    throw new Error("Supabase library could not load. Check your internet connection and refresh the page.");
+  }
+  if (!SUPABASE_URL || !/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(SUPABASE_URL.trim())) {
+    throw new Error("Your Supabase Project URL is missing or invalid. Update supabase-config.js.");
+  }
+  if (!SUPABASE_ANON_KEY || /YOUR_|PLACEHOLDER/i.test(SUPABASE_ANON_KEY)) {
+    throw new Error("Your Supabase Publishable key is missing. Update supabase-config.js.");
+  }
+  try {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL.trim(), SUPABASE_ANON_KEY.trim());
+    supabaseReady = true;
+    return supabaseClient;
+  } catch (error) {
+    throw new Error(`Could not initialize Supabase: ${error.message}`);
+  }
+}
+
+async function initialiseMatching() {
+  await initialiseSupabase();
+  if (matchingReady) return;
+  if (typeof window.createMatchingModule !== "function") {
+    throw new Error("The C++ matching module is missing. Check that Netlify generated matching.js and matching.wasm.");
+  }
+  matchingModule = await window.createMatchingModule();
+  const response = await fetch("/demo_profiles.json", { cache: "no-cache" });
+  if (!response.ok) throw new Error(`Could not load demo_profiles.json (HTTP ${response.status}).`);
+  demoProfiles = await response.json();
+  if (!Array.isArray(demoProfiles) || demoProfiles.length !== 100) {
+    throw new Error(`Expected exactly 100 demo profiles, but found ${Array.isArray(demoProfiles) ? demoProfiles.length : 0}.`);
+  }
+  matchingReady = true;
+}
+
+// Shared UI state and helpers used throughout this file.
+const $ = (id) => document.getElementById(id);
+let authMode = "login";
+let currentUser = null;
+let currentStep = 1;
+let currentMatches = [];
 let matchingModule = null;
 let demoProfiles = [];
+let toastTimer = null;
+
+function showScreen(name) {
+  const screenId = `${name}Screen`;
+  document.querySelectorAll(".screen").forEach(screen => {
+    screen.hidden = screen.id !== screenId;
+  });
+  const authenticated = name !== "auth" && !!currentUser;
+  $("bottomNav").hidden = !authenticated;
+  $("topActions").hidden = !authenticated;
+  document.querySelectorAll(".nav-item").forEach(button => {
+    button.classList.toggle("active", button.dataset.screen === name);
+  });
+  window.scrollTo({ top: 0, behavior: "instant" });
+}
+
+function toast(message) {
+  const element = $("toast");
+  if (!element) return;
+  element.textContent = message;
+  element.classList.add("show");
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => element.classList.remove("show"), 3000);
+}
 
 async function initialiseBackend() {
-  if (!SUPABASE_URL || SUPABASE_URL.includes("YOUR_") ||
-      !SUPABASE_ANON_KEY || SUPABASE_ANON_KEY.includes("YOUR_")) {
-    throw new Error("Add your Supabase project URL and anon key in supabase-config.js.");
-  }
-  if (!matchingModule) {
-    if (typeof window.createMatchingModule !== "function")
-      throw new Error("C++ matching module was not built. Check the Netlify build log.");
-    matchingModule = await window.createMatchingModule();
-  }
-  if (!demoProfiles.length) {
-    const response = await fetch("/demo_profiles.json");
-    if (!response.ok) throw new Error("Could not load demo_profiles.json.");
-    demoProfiles = await response.json();
-    if (demoProfiles.length !== 100) throw new Error("The demo dataset must contain exactly 100 profiles.");
-  }
+  // Kept as a compatibility wrapper for any existing call sites.
+  await initialiseSupabase();
 }
 
 function publicProfile(row) {
@@ -33,7 +91,7 @@ function publicProfile(row) {
 }
 
 async function api(path, options = {}) {
-  await initialiseBackend();
+  await initialiseSupabase();
   const method = (options.method || "GET").toUpperCase();
   const body = options.body ? JSON.parse(options.body) : {};
   let result;
@@ -45,13 +103,15 @@ async function api(path, options = {}) {
       options: { data: { full_name: body.name.trim() } }
     });
     if (error) throw error;
-    if (!data.session) throw new Error("Account created. Disable email confirmation in Supabase Authentication settings, then log in.");
+    if (!data.session) {
+      return { requiresEmailConfirmation: true, email: body.email.trim().toLowerCase() };
+    }
     const user = data.user;
-    const { error: profileError } = await supabaseClient.from("profiles").upsert({
+    const { data: profile, error: profileError } = await supabaseClient.from("profiles").upsert({
       id: user.id, name: body.name.trim(), bio: "", preferences: {}, has_profile: false
-    });
+    }).select().single();
     if (profileError) throw profileError;
-    return { message: "Account created", user: { id: user.id, name: body.name.trim(), bio: "", preferences: {}, hasProfile: false } };
+    return { message: "Account created", user: publicProfile(profile) };
   }
 
   if (path === "/login" && method === "POST") {
@@ -89,6 +149,7 @@ async function api(path, options = {}) {
 
   const discoverMatch = path.match(/^\/users\/([^/]+)\/discover$/);
   if (discoverMatch && method === "GET") {
+    await initialiseMatching();
     const uid = discoverMatch[1];
     const { data: own, error: ownError } = await supabaseClient.from("profiles")
       .select("*").eq("id", uid).single();
@@ -129,10 +190,15 @@ async function api(path, options = {}) {
     if (error) throw error;
     const ids = new Set((likes || []).map(x => String(x.target_id)));
     const demo = demoProfiles.filter(p => ids.has(String(p.id))).map(p => ({...p, id:String(p.id)}));
-    const { data: registered, error: usersError } = await supabaseClient.from("profiles")
-      .select("*").in("id", [...ids].filter(id => !/^\d+$/.test(id)));
-    if (usersError) throw usersError;
-    return { matches: [...demo, ...(registered || []).map(publicProfile)] };
+    const registeredIds = [...ids].filter(id => !/^\d+$/.test(id));
+    let registered = [];
+    if (registeredIds.length) {
+      const { data, error: usersError } = await supabaseClient.from("profiles")
+        .select("*").in("id", registeredIds);
+      if (usersError) throw usersError;
+      registered = data || [];
+    }
+    return { matches: [...demo, ...registered.map(publicProfile)] };
   }
   throw new Error(`Unsupported FlatMate request: ${method} ${path}`);
 }
@@ -179,7 +245,7 @@ function setAuthMode(mode) {
 
 async function enterApp(user) {
   currentUser = user;
-  $("welcomeText").textContent = `Hello, ${user.name.split(" ")[0]}`;
+  $("welcomeText").textContent = `Hello, ${(user.name || "there").split(" ")[0]}`;
   renderAccountAvatar(); renderPhotoPreview();
   try {
     const data = await api(`/users/${user.id}/profile`);
@@ -190,70 +256,56 @@ async function enterApp(user) {
     } else {
       await loadDiscover();
     }
-  } catch (e) {
-    populateQuestionnaire();
-    showScreen("questionnaire");
+  } catch (error) {
+    console.error("Could not load the signed-in user's profile:", error);
+    showScreen("auth");
+    $("authError").textContent = `You are signed in, but your profile could not be loaded: ${error.message}. Check the Supabase profiles table and its Row Level Security policies.`;
   }
 }
 
 $("authForm").addEventListener("submit", async (event) => {
   event.preventDefault();
-
   const errorBox = $("authError");
   const submitButton = $("authSubmit");
-
   errorBox.textContent = "";
 
   const payload = {
     email: $("authEmail").value.trim(),
     password: $("authPassword").value
   };
-
   if (!payload.email || !payload.password) {
-    errorBox.textContent = "Please enter your email and password.";
+    errorBox.textContent = "Enter your email address and password.";
     return;
+  }
+  if (authMode === "register") {
+    payload.name = $("authName").value.trim();
+    if (!payload.name) {
+      errorBox.textContent = "Enter your name to create an account.";
+      $("authName").focus();
+      return;
+    }
   }
 
   submitButton.disabled = true;
-  submitButton.textContent = "Please wait...";
-
+  const originalLabel = authMode === "register" ? 'Create account <span>→</span>' : 'Log in <span>→</span>';
+  submitButton.textContent = authMode === "register" ? "Creating account…" : "Logging in…";
   try {
-    let data;
+    const data = authMode === "register"
+      ? await api("/register", { method: "POST", body: JSON.stringify(payload) })
+      : await api("/login", { method: "POST", body: JSON.stringify(payload) });
 
-    if (authMode === "register") {
-      payload.name = $("authName").value.trim();
-
-      if (!payload.name) {
-        throw new Error("Please enter your name.");
-      }
-
-      data = await api("/register", {
-        method: "POST",
-        body: JSON.stringify(payload)
-      });
-
-      toast("Account created. Let's set up your profile.");
-    } else {
-      data = await api("/login", {
-        method: "POST",
-        body: JSON.stringify(payload)
-      });
-
-      toast("Welcome back!");
+    if (data.requiresEmailConfirmation) {
+      errorBox.textContent = `Account created. Check ${data.email} for the confirmation link. After confirming, return here and log in.`;
+      return;
     }
-
+    toast(authMode === "register" ? "Account created. Let's set up your profile." : "Welcome back!");
     await enterApp(data.user);
-
   } catch (error) {
-    console.error("FlatMate login error:", error);
-    errorBox.textContent = error.message || "Login failed. Please try again.";
-
+    console.error("FlatMate authentication error:", error);
+    errorBox.textContent = error.message || "Authentication failed. Please try again.";
   } finally {
     submitButton.disabled = false;
-    submitButton.innerHTML =
-      authMode === "register"
-        ? 'Create account <span>→</span>'
-        : 'Log in <span>→</span>';
+    submitButton.innerHTML = originalLabel;
   }
 });
 
@@ -349,11 +401,10 @@ $("questionnaireForm").addEventListener("submit", async (event) => {
   saveButton.disabled = true;
   saveButton.innerHTML = 'Saving preferences…';
   try {
-    await api(`/users/${currentUser.id}/profile`, {
+    const saved = await api(`/users/${currentUser.id}/profile`, {
       method:"PUT", body:JSON.stringify({bio:$("bio").value.trim(), preferences})
     });
-    currentUser.preferences = preferences;
-    currentUser.bio = $("bio").value.trim();
+    currentUser = saved.user;
     await loadDiscover();
   } catch(e) {
     error.textContent = e.message;
@@ -471,7 +522,7 @@ $("editProfileBtn").addEventListener("click", () => { populateQuestionnaire(); s
 $("emptyEditBtn").addEventListener("click", () => { populateQuestionnaire(); showScreen("questionnaire"); });
 $("backDiscoverBtn").addEventListener("click", loadDiscover);
 $("logoutBtn").addEventListener("click", async () => {
-  await supabaseClient.auth.signOut();
+  if (supabaseClient) await supabaseClient.auth.signOut();
   currentUser = null;
   currentMatches = [];
   $("authForm").reset();
@@ -493,16 +544,28 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")closeProfile();});
 setupPhotoUpload();
 showScreen("auth");
 (async () => {
+  // Authentication UI is already wired before this background session check.
+  // A missing WASM file or demo dataset must not disable login or registration.
   try {
-    await initialiseBackend();
-    const { data: { session } } = await supabaseClient.auth.getSession();
+    await initialiseSupabase();
+    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+    if (sessionError) throw sessionError;
     if (session?.user) {
-      const { data: profile, error } = await supabaseClient.from("profiles")
+      let { data: profile, error } = await supabaseClient.from("profiles")
         .select("*").eq("id", session.user.id).maybeSingle();
       if (error) throw error;
-      if (profile) await enterApp(publicProfile(profile));
+      if (!profile) {
+        const name = session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "FlatMate user";
+        const result = await supabaseClient.from("profiles").upsert({
+          id: session.user.id, name, bio: "", preferences: {}, has_profile: false
+        }).select().single();
+        if (result.error) throw result.error;
+        profile = result.data;
+      }
+      await enterApp(publicProfile(profile));
     }
-  } catch (e) {
-    $("authError").textContent = e.message;
+  } catch (error) {
+    console.error("FlatMate startup error:", error);
+    $("authError").textContent = error.message || "Could not restore your session. You can still try logging in.";
   }
 })();
