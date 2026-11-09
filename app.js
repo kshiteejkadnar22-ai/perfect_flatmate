@@ -198,24 +198,62 @@ async function enterApp(user) {
 
 $("authForm").addEventListener("submit", async (event) => {
   event.preventDefault();
-  $("authError").textContent = "";
+
+  const errorBox = $("authError");
+  const submitButton = $("authSubmit");
+
+  errorBox.textContent = "";
+
   const payload = {
     email: $("authEmail").value.trim(),
     password: $("authPassword").value
   };
+
+  if (!payload.email || !payload.password) {
+    errorBox.textContent = "Please enter your email and password.";
+    return;
+  }
+
+  submitButton.disabled = true;
+  submitButton.textContent = "Please wait...";
+
   try {
     let data;
+
     if (authMode === "register") {
       payload.name = $("authName").value.trim();
-      data = await api("/register", {method:"POST", body:JSON.stringify(payload)});
-      toast("Account created. Let’s set up your profile.");
+
+      if (!payload.name) {
+        throw new Error("Please enter your name.");
+      }
+
+      data = await api("/register", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+
+      toast("Account created. Let's set up your profile.");
     } else {
-      data = await api("/login", {method:"POST", body:JSON.stringify(payload)});
+      data = await api("/login", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+
       toast("Welcome back!");
     }
+
     await enterApp(data.user);
-  } catch (e) {
-    $("authError").textContent = e.message;
+
+  } catch (error) {
+    console.error("FlatMate login error:", error);
+    errorBox.textContent = error.message || "Login failed. Please try again.";
+
+  } finally {
+    submitButton.disabled = false;
+    submitButton.innerHTML =
+      authMode === "register"
+        ? 'Create account <span>→</span>'
+        : 'Log in <span>→</span>';
   }
 });
 
